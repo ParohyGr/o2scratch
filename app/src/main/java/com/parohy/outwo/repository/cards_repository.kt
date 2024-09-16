@@ -1,8 +1,5 @@
 package com.parohy.outwo.repository
 
-import android.content.Context
-import android.content.SharedPreferences
-import android.util.Log
 import com.parohy.outwo.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -14,7 +11,8 @@ import java.util.UUID
 
 data class ScratchCard(
   val code: String,
-  val isScratched: Boolean = false
+  val isScratched: Boolean = false,
+  val isActivated: Boolean = false
 )
 
 interface CardsRepository {
@@ -23,35 +21,46 @@ interface CardsRepository {
   suspend fun scratchCard(code: String)
   fun activateCard(code: String)
   fun resetActivate()
-  val data: StateFlow<CardRepositoryState>
+  fun removeCard(code: String)
+  fun getData(): Flow<CardRepositoryState>
 }
-
-private val Context.cardsPreferences get() = getSharedPreferences("cards", Context.MODE_PRIVATE)
 
 data class CardRepositoryState(
   val cards: State<Throwable, Map<String, ScratchCard>>? = null,
-  val activation: State<Throwable, Int>? = null
+  val activation: State<Throwable, Unit>? = null
 )
 
-class CardsRepositoryImpl(private val context: Context): CardsRepository {
+private const val MIN_RESULT_INT = 277028
+
+class CardsRepositoryImpl(
+  private val db: CardPreferences,
+  private val apiEndpoint: String = "https://api.o2.sk/",
+  private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+): CardsRepository {
   private val _data: MutableStateFlow<CardRepositoryState> = MutableStateFlow(CardRepositoryState())
-  override val data: StateFlow<CardRepositoryState> = _data
+  override fun getData(): Flow<CardRepositoryState> = _data
 
   private val cardsMap: Map<String, ScratchCard> get() = (_data.value.cards.valueOrNull ?: emptyMap())
 
-  private val coroutineScope = CoroutineScope(Dispatchers.IO)
   private val httpClient by lazy {
     OkHttpClient.Builder()
-      .addInterceptor(HttpLoggingInterceptor { Log.i("🪃OkHttp", it) }.apply { level = Level.BODY })
-      .build() }
+      .addInterceptor(HttpLoggingInterceptor().apply { level = Level.BODY })
+      .build()
+  }
 
   override suspend fun loadCards() {
     if (_data.value.cards.isLoading) return
 
     withContext(Dispatchers.IO) {
-      _data.value = _data.value.copy(cards = Loading)
+      if (!_data.value.cards.isContent) //here could handle refresh state
+        _data.value = _data.value.copy(cards = Loading)
+
       delay(2000)
-      _data.value = _data.value.copy(Content(context.cardsPreferences.loadCards().associateBy(ScratchCard::code)))
+      _data.value = try {
+        _data.value.copy(cards = Content(db.loadCards().associateBy(ScratchCard::code)))
+      } catch (e: Exception) {
+        _data.value.copy(cards = Failure(RuntimeException("Failed to load cards", e)))
+      }
     }
   }
 
@@ -60,7 +69,7 @@ class CardsRepositoryImpl(private val context: Context): CardsRepository {
       delay(2000)
       val uuid = UUID.randomUUID().toString()
       val newCards = cardsMap + (uuid to ScratchCard(uuid))
-      context.cardsPreferences.saveCards(newCards.values.toList())
+      db.saveCards(newCards.values.toList())
       _data.value = _data.value.copy(cards = Content(newCards))
     }
   }
@@ -70,7 +79,7 @@ class CardsRepositoryImpl(private val context: Context): CardsRepository {
       delay(2000)
       val cardToScratch = cardsMap[code]?.copy(isScratched = true) ?: throw IllegalArgumentException("Card $code not found")
       val newCards = cardsMap + (code to cardToScratch)
-      context.cardsPreferences.saveCards(newCards.values.toList())
+      db.saveCards(newCards.values.toList())
       _data.value = _data.value.copy(cards = Content(newCards))
     }
   }
@@ -80,31 +89,45 @@ class CardsRepositoryImpl(private val context: Context): CardsRepository {
 
     coroutineScope.launch {
       _data.value = _data.value.copy(activation = Loading)
-      val result = httpClient.execute(
-        request = httpGet("https://api.o2.sk/version?code=$code".toHttpUrl()),
-        parse   = { json -> json["android"].string.toInt() }
-      )
-      _data.value = _data.value.copy(activation = result.toState())
+
+      try {
+        cardsMap.isNotEmpty() || throw IllegalStateException("Cards state not loaded")
+        cardsMap.containsKey(code) || throw IllegalArgumentException("Card $code not found")
+
+        val result: Result<Unit> = httpClient.execute(
+          request = httpGet("${apiEndpoint}version?code=$code".toHttpUrl()),
+          parse   = { json -> json["android"].string.toInt() }
+        ).fold(
+          onSuccess = {
+            if (it > MIN_RESULT_INT)
+              Result.success(Unit)
+            else
+              Result.failure(IllegalStateException("Failed to activate card!"))
+          },
+          onFailure = { Result.failure(it) }
+        )
+
+        val activatedCard = cardsMap[code]?.copy(isActivated = result.isSuccess) ?: throw IllegalArgumentException("Card $code not found")
+        val newCards = cardsMap + (code to activatedCard)
+
+        db.saveCards(newCards.values.toList())
+        _data.value = _data.value.copy(activation = result.toState(), cards = Content(newCards))
+      } catch (e: Exception) {
+        _data.value = _data.value.copy(activation = Failure(e))
+      }
     }
   }
 
   override fun resetActivate() {
     _data.value = _data.value.copy(activation = null)
   }
-}
 
-/*region DB*/
-private fun SharedPreferences.loadCards(): Set<ScratchCard> {
-  val cards = mutableListOf<ScratchCard>()
-  val cardCodes = getStringSet("cards", emptySet()) ?: emptySet()
-  Log.i("CardsRepositoryImpl", "loadCards: $cardCodes")
-  cardCodes.forEach { cardsString -> cards += cardsString.split(";").let { ScratchCard(it.first(), it.last().toBoolean()) } }
-  return cards.toSet()
-}
+  override fun removeCard(code: String) {
+    if (!cardsMap.containsKey(code))
+      throw IllegalArgumentException("Card $code not found")
 
-private fun SharedPreferences.saveCards(cards: List<ScratchCard>) {
-  val cardCodes = cards.map { "${it.code};${it.isScratched}" }.toSet()
-  Log.i("CardsRepositoryImpl", "saveCards: $cardCodes")
-  edit().putStringSet("cards", cardCodes).apply()
+    val newCards = cardsMap - code
+    db.saveCards(newCards.values.toList())
+    _data.value = _data.value.copy(cards = Content(newCards))
+  }
 }
-/*endregion*/

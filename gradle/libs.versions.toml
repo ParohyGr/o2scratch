@@ -5,7 +5,6 @@ coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
-lifecycleRuntimeKtx = "2.8.5"
 activityCompose = "1.9.2"
 composeBom = "2024.04.01"
 navigation = "2.8.0"
@@ -14,13 +13,22 @@ koinCore = "4.0.0-RC2"
 gson = "2.11.0"
 okhttp = "4.12.0"
 loggingInterceptor = "4.12.0"
+mockk = "1.13.12"
+koinTestJunit5 = "4.0.0-RC2"
+koinTest = "4.0.0-RC2"
+coreTesting = "2.2.0"
+kotlinxCoroutinesTest = "1.9.0"
+mockwebserver = "5.0.0-alpha.14"
+junitJupiter = "5.11.0"
+lifecycleRuntime = "2.8.5"
+turbine = "1.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntime" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
@@ -36,6 +44,15 @@ koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koinC
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "loggingInterceptor" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+koin-test-junit5 = { group = "io.insert-koin", name = "koin-test-junit5", version.ref = "koinTestJunit5" }
+koin-test = { group = "io.insert-koin", name = "koin-test", version.ref = "koinTest" }
+androidx-core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "coreTesting" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
+mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "mockwebserver" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junitJupiter" }
+androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime", version.ref = "lifecycleRuntime" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

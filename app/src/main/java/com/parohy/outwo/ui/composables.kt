@@ -29,15 +29,40 @@ fun ScreenError(t: Throwable) {
 }
 
 @Composable
-fun Alert(title: String, text: String? = null, action: () -> Unit) {
+fun Alert(title: String, text: String? = null, onDismiss: () -> Unit = {}, confirm: (() -> Unit)? = null) {
   AlertDialog(
     title = { Text(title) },
     text = { Text(text ?: "") },
-    onDismissRequest = action,
+    onDismissRequest = onDismiss,
     confirmButton = {
-      Button(onClick = action) {
-        Text("OK")
+      Button(onClick = confirm ?: onDismiss) {
+        Text("Yes")
+      }
+    },
+    dismissButton = {
+      if (confirm != null) {
+        Button(onClick = onDismiss) {
+          Text("No")
+        }
       }
     }
   )
+}
+
+@Composable
+fun alertDialog(
+  onDismiss: () -> Unit = {},
+  confirm: (() -> Unit)? = null
+): (String, String?) -> Unit {
+  val isShowing = remember { mutableStateOf(false) }
+  val title = remember { mutableStateOf("") }
+  val text = remember { mutableStateOf<String?>(null) }
+  if (isShowing.value)
+    Alert(title = title.value, text = text.value, onDismiss = { onDismiss(); isShowing.value = false }, confirm = confirm?.let { { it(); isShowing.value = false } })
+
+  return { t, m ->
+    title.value = t
+    text.value = m
+    isShowing.value = true
+  }
 }

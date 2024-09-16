@@ -4,12 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.navigation.*
 import androidx.navigation.compose.*
+import androidx.navigation.toRoute
 import com.parohy.outwo.ui.activate.ActivationScreenComposable
-import com.parohy.outwo.ui.theme.O2ScratchTheme
-import com.parohy.outwo.ui.theme.cards.CardsScreenComposable
 import com.parohy.outwo.ui.scratch.ScratchScreenComposable
+import com.parohy.outwo.ui.theme.O2ScratchTheme
+import com.parohy.outwo.ui.cards.CardsScreenComposable
 import kotlinx.serialization.Serializable
 
 @Serializable

@@ -46,6 +46,9 @@ android {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
   }
+  tasks.withType<Test> {
+    useJUnitPlatform()
+  }
 }
 
 dependencies {
@@ -63,7 +66,16 @@ dependencies {
   implementation(libs.gson)
   implementation(libs.okhttp)
   implementation(libs.logging.interceptor)
+  implementation(libs.androidx.lifecycle.runtime)
+  testImplementation(libs.junit.jupiter)
+  testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.koin.test.junit5)
+  testImplementation(libs.koin.test)
+  testImplementation(libs.mockk)
   testImplementation(libs.junit)
+  testImplementation(libs.androidx.core.testing)
+  testImplementation(libs.mockwebserver)
+  testImplementation(libs.turbine)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(platform(libs.androidx.compose.bom))

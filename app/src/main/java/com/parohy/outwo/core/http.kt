@@ -4,12 +4,13 @@ import okhttp3.*
 import okhttp3.Headers.Companion.headersOf
 import okio.IOException
 
-fun httpGet    (url: HttpUrl, headers: Headers = headersOf()) = request(url, headers) { get() }
+fun httpGet(url: HttpUrl, headers: Headers = headersOf()) = request(url, headers) { get() }
 
-fun request(url: HttpUrl, headers: Headers = headersOf(), tag: String? = null, config: Request.Builder.() -> Request.Builder): Request =
+fun request(url: HttpUrl,
+  headers: Headers = headersOf(),
+  tag: String? = null,
+  config: Request.Builder.() -> Request.Builder): Request =
   Request.Builder().url(url).headers(headers).tag(tag).config().build()
-
-fun OkHttpClient.execute(request: Request): Result<Unit> = call(request).map {}
 
 fun <V> OkHttpClient.execute(request: Request, parse: (Json) -> V): Result<V> =
   call(request).map {
